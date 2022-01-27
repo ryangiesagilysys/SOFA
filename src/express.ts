@@ -11,7 +11,6 @@ import { buildOperationNodeForField } from '@graphql-tools/utils';
 import { getOperationInfo, OperationInfo } from './ast';
 import type { Sofa, Route } from './sofa';
 import type { RouteInfo, Method, ContextValue } from './types';
-import { convertName } from './common';
 import { parseVariable } from './parse';
 import { StartSubscriptionEvent, SubscriptionManager } from './subscriptions';
 import { logger } from './logger';
@@ -210,7 +209,7 @@ function createQueryRoute({
   const routeConfig = sofa.routes?.[graphqlPath];
   const route = {
     method: routeConfig?.method ?? 'GET',
-    path: routeConfig?.path ?? getPath(fieldName, isSingle && hasIdArgument),
+    path: routeConfig?.path ?? getPath(sofa, fieldName, isSingle && hasIdArgument),
     responseStatus: routeConfig?.responseStatus ?? 200,
   };
 
@@ -260,7 +259,7 @@ function createMutationRoute({
   const routeConfig = sofa.routes?.[graphqlPath];
   const route = {
     method: routeConfig?.method ?? 'POST',
-    path: routeConfig?.path ?? getPath(fieldName),
+    path: routeConfig?.path ?? getPath(sofa, fieldName),
     responseStatus: routeConfig?.responseStatus ?? 200,
   };
   const { method, path } = route;
@@ -337,8 +336,9 @@ function useHandler(config: {
   };
 }
 
-function getPath(fieldName: string, hasId = false) {
-  return `/${convertName(fieldName)}${hasId ? '/:id' : ''}`;
+function getPath(sofa: Sofa, fieldName: string, hasId = false) {
+  const name = sofa.convertName(fieldName);
+  return `/${name}${hasId ? '/:id' : ''}`;
 }
 
 function pickParam({
