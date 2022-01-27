@@ -14,6 +14,7 @@ import type { RouteInfo, Method, ContextValue } from './types';
 import { parseVariable } from './parse';
 import { StartSubscriptionEvent, SubscriptionManager } from './subscriptions';
 import { logger } from './logger';
+import { URLSearchParams } from 'url';
 
 export type ErrorHandler = (errors: ReadonlyArray<any>) => RouterError;
 
