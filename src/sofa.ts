@@ -9,8 +9,8 @@ import {
   GraphQLOutputType,
 } from 'graphql';
 
-import { Ignore, ExecuteFn, OnRoute, Method } from './types';
-import { convertName } from './common';
+import {Ignore, ExecuteFn, OnRoute, Method, ConvertFn} from './types';
+import { paramCase } from 'param-case';
 import { logger } from './logger';
 import { ErrorHandler } from './express';
 
@@ -48,6 +48,7 @@ export interface SofaConfig {
    * Overwrites the default HTTP route.
    */
   routes?: Record<string, RouteConfig>;
+  convertName?: ConvertFn;
 }
 
 export interface Sofa {
@@ -60,12 +61,14 @@ export interface Sofa {
   execute: ExecuteFn;
   onRoute?: OnRoute;
   errorHandler?: ErrorHandler;
+  convertName: ConvertFn;
 }
 
 export function createSofa(config: SofaConfig): Sofa {
   logger.debug('[Sofa] Created');
 
-  const models = extractsModels(config.schema);
+  const convertName = config.convertName || paramCase;
+  const models = extractsModels(config.schema, convertName);
   const ignore = config.ignore || [];
   const depthLimit = config.depthLimit || 1;
 
@@ -77,6 +80,7 @@ export function createSofa(config: SofaConfig): Sofa {
     models,
     ignore,
     depthLimit,
+    convertName,
     ...config,
   };
 }
@@ -86,7 +90,7 @@ export function createSofa(config: SofaConfig): Sofa {
 // We don't treat Unions as models because
 // they might represent an Object that is not a model
 // We check it later, when an operation is being built
-function extractsModels(schema: GraphQLSchema): string[] {
+function extractsModels(schema: GraphQLSchema, convertName: ConvertFn): string[] {
   const modelMap: {
     [name: string]: {
       list?: boolean;
@@ -113,7 +117,7 @@ function extractsModels(schema: GraphQLSchema): string[] {
         // check if name of a field matches a name of a named type (in plural)
         // check if has no non-optional arguments
         // add to registry with `list: true`
-        const sameName = isNameEqual(field.name, namedType.name + 's');
+        const sameName = isNameEqual(convertName, field.name, namedType.name + 's');
         const allOptionalArguments = !field.args.some((arg) =>
           isNonNullType(arg.type)
         );
@@ -127,7 +131,7 @@ function extractsModels(schema: GraphQLSchema): string[] {
         // check if name of a field matches with name of an object type
         // check if has only one argument named `id`
         // add to registry with `single: true`
-        const sameName = isNameEqual(field.name, namedType.name);
+        const sameName = isNameEqual(convertName, field.name, namedType.name);
         const hasIdArgument =
           field.args.length === 1 && field.args[0].name === 'id';
 
@@ -154,6 +158,6 @@ function hasID(type: GraphQLNamedType): type is GraphQLObjectType {
   return isObjectType(type) && !!type.getFields().id;
 }
 
-function isNameEqual(a: string, b: string): boolean {
+function isNameEqual(convertName: ConvertFn, a: string, b: string): boolean {
   return convertName(a) === convertName(b);
 }

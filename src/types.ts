@@ -6,6 +6,8 @@ export type Ignore = string[];
 
 export type ExecuteFn = (args: GraphQLArgs) => Promise<ExecutionResult<any>>;
 
+export type ConvertFn = (name: string) => string;
+
 export type Method = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
 
 export interface RouteInfo {
